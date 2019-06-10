@@ -60,7 +60,9 @@ def train(
         data_cfg,
         img_size=416,
         resume=False,
-        epochs=273,  # 500200 batches at bs 64, dataset length 117263
+        ########################changed num epochs from 273 to 50
+        epochs=50,  # 500200 batches at bs 64, dataset length 117263
+        #########################################################
         batch_size=16,
         accumulate=1,
         multi_scale=False,
@@ -96,7 +98,8 @@ def train(
     nf = int(model.module_defs[model.yolo_layers[0] - 1]['filters'])  # yolo layer size (i.e. 255)
     if resume:  # Load previously saved model
         if transfer:  # Transfer learning
-            chkpt = torch.load(weights + 'yolov3-spp.pt', map_location=device)
+        ########################## use yolov3.pt instead############################
+            chkpt = torch.load(weights + 'yolov3.pt', map_location=device)
             model.load_state_dict({k: v for k, v in chkpt['model'].items() if v.numel() > 1 and v.shape[0] != 255},
                                   strict=False)
             for p in model.parameters():
@@ -301,7 +304,9 @@ def print_mutation(hyp, results):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--epochs', type=int, default=273, help='number of epochs')
+    ####################################changed default epoch to 50##############
+    parser.add_argument('--epochs', type=int, default=50, help='number of epochs')
+    ################################################################################
     parser.add_argument('--batch-size', type=int, default=16, help='size of each image batch')
     parser.add_argument('--accumulate', type=int, default=1, help='accumulate gradient x batches before optimizing')
     ###########################################################################################
