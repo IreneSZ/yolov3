@@ -147,7 +147,7 @@ class LoadImagesAndLabels(Dataset):  # for training/testing
         self.augment = augment
         self.image_weights = image_weights
         self.rect = False if image_weights else rect
-        self.label_files = [x.replace('images', 'labels').
+        self.label_files = [x.replace('image', 'bbox').
                                 replace('.jpeg', '.txt').
                                 replace('.jpg', '.txt').
                                 replace('.bmp', '.txt').
@@ -203,7 +203,7 @@ class LoadImagesAndLabels(Dataset):  # for training/testing
                         assert (l >= 0).all(), 'negative labels: %s' % file
                         assert (l[:, 1:] <= 1).all(), 'non-normalized or out of bounds coordinate labels: %s' % file
                         self.labels[i] = l
-            except:
+            except FileNotFoundError:
                 pass  # print('Warning: missing labels for %s' % self.img_files[i])  # missing label file
         assert len(np.concatenate(self.labels, 0)) > 0, 'No labels found. Incorrect label paths provided.'
 

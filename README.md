@@ -29,7 +29,7 @@ The https://github.com/ultralytics/yolov3 repo contains inference and training c
 Python 3.7 or later with the following `pip3 install -U -r requirements.txt` packages:
 
 - `numpy`
-- `torch >= 1.1.0`
+- `torch >= 1.0.0`
 - `opencv-python`
 - `tqdm`
 
@@ -40,11 +40,6 @@ Python 3.7 or later with the following `pip3 install -U -r requirements.txt` pac
 * [Train Single Image](https://github.com/ultralytics/yolov3/wiki/Example:-Train-Single-Image)
 * [Train Single Class](https://github.com/ultralytics/yolov3/wiki/Example:-Train-Single-Class)
 * [Train Custom Data](https://github.com/ultralytics/yolov3/wiki/Train-Custom-Data)
-
-# Jupyter Notebook
-
-A jupyter notebook with training, detection and testing examples is available at: 
-https://colab.research.google.com/drive/1G8T-VFxQkjDe4idzN8F-hbIBqkkkQnxw
 
 # Training
 

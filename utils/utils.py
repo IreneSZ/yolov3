@@ -7,8 +7,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 import torch
 import torch.nn as nn
-from PIL import Image
-from tqdm import tqdm
 
 from . import torch_utils
 
@@ -492,56 +490,6 @@ def coco_only_people(path='../coco/labels/val2014/'):
             print(labels.shape[0], file)
 
 
-def select_best_evolve(path='../../Downloads/evolve*.txt'):  # from utils.utils import *; select_best_evolve()
-    # Find best evolved mutation
-    for file in sorted(glob.glob(path)):
-        x = np.loadtxt(file, dtype=np.float32)
-        print(file, x[x[:, 2].argmax()])
-
-
-def kmeans_targets(path='./data/coco_64img.txt'):  # from utils.utils import *; kmeans_targets()
-    with open(path, 'r') as f:
-        img_files = f.read().splitlines()
-        img_files = list(filter(lambda x: len(x) > 0, img_files))
-
-    # Read shapes
-    n = len(img_files)
-    assert n > 0, 'No images found in %s' % path
-    label_files = [x.replace('images', 'labels').
-                       replace('.jpeg', '.txt').
-                       replace('.jpg', '.txt').
-                       replace('.bmp', '.txt').
-                       replace('.png', '.txt') for x in img_files]
-    s = np.array([Image.open(f).size for f in tqdm(img_files, desc='Reading image shapes')])  # (width, height)
-
-    # Read targets
-    labels = [np.zeros((0, 5))] * n
-    iter = tqdm(label_files, desc='Reading labels')
-    for i, file in enumerate(iter):
-        try:
-            with open(file, 'r') as f:
-                l = np.array([x.split() for x in f.read().splitlines()], dtype=np.float32)
-                if l.shape[0]:
-                    assert l.shape[1] == 5, '> 5 label columns: %s' % file
-                    assert (l >= 0).all(), 'negative labels: %s' % file
-                    assert (l[:, 1:] <= 1).all(), 'non-normalized or out of bounds coordinate labels: %s' % file
-                    l[:, [1, 3]] *= s[i][0]
-                    l[:, [2, 4]] *= s[i][1]
-                    l[:, 1:] *= 320 / max(s[i])
-                    labels[i] = l
-        except:
-            pass  # print('Warning: missing labels for %s' % self.img_files[i])  # missing label file
-    assert len(np.concatenate(labels, 0)) > 0, 'No labels found. Incorrect label paths provided.'
-
-    # kmeans
-    from scipy import cluster
-    wh = np.concatenate(labels, 0)[:, 3:5]
-    k = cluster.vq.kmeans(wh, 9)[0]
-    k = k[np.argsort(k.prod(1))]
-    for x in k.ravel():
-        print('%.1f, ' % x, end='')
-
-
 # Plotting functions ---------------------------------------------------------------------------------------------------
 
 def plot_one_box(x, img, color=None, label=None, line_thickness=None):
@@ -597,25 +545,6 @@ def plot_images(imgs, targets, fname='images.jpg'):
     fig.tight_layout()
     fig.savefig(fname, dpi=300)
     plt.close()
-
-
-def plot_test_txt():  # from test import *; plot_test()
-    # Plot test.txt histograms
-    x = np.loadtxt('test.txt', dtype=np.float32)
-    box = xyxy2xywh(x[:, :4])
-    cx, cy = box[:, 0], box[:, 1]
-
-    fig, ax = plt.subplots(1, 1, figsize=(6, 6))
-    ax.hist2d(cx, cy, bins=600, cmax=10, cmin=0)
-    ax.set_aspect('equal')
-    fig.tight_layout()
-    plt.savefig('hist2d.jpg', dpi=300)
-
-    fig, ax = plt.subplots(1, 2, figsize=(12, 6))
-    ax[0].hist(cx, bins=600)
-    ax[1].hist(cy, bins=600)
-    fig.tight_layout()
-    plt.savefig('hist1d.jpg', dpi=300)
 
 
 def plot_results(start=0, stop=0):  # from utils.utils import *; plot_results()

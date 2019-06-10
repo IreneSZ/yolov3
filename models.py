@@ -146,7 +146,7 @@ class YOLOLayer(nn.Module):
             xy = torch.sigmoid(p[..., 0:2]) + grid_xy  # x, y
             wh = torch.exp(p[..., 2:4]) * anchor_wh  # width, height
             p_conf = torch.sigmoid(p[..., 4:5])  # Conf
-            p_cls = p[..., 5:5 + self.nc]
+            p_cls = p[..., 5:85]
             # Broadcasting only supported on first dimension in CoreML. See onnx-coreml/_operators.py
             # p_cls = F.softmax(p_cls, 2) * p_conf  # SSD-like conf
             p_cls = torch.exp(p_cls).permute((2, 1, 0))
@@ -181,9 +181,9 @@ class Darknet(nn.Module):
         self.hyperparams, self.module_list = create_modules(self.module_defs)
         self.yolo_layers = get_yolo_layers(self)
 
-        # Darknet Header https://github.com/AlexeyAB/darknet/issues/2914#issuecomment-496675346
-        self.version = np.array([0, 2, 5], dtype=np.int32)  # (int32) version info: major, minor, revision
-        self.seen = np.array([0], dtype=np.int64)  # (int64) number of images seen during training
+        # Needed to write header when saving weights
+        self.header_info = np.zeros(5, dtype=np.int32)  # First five are header values
+        self.seen = self.header_info[3]  # number of images seen during training
 
     def forward(self, x, var=None):
         img_size = max(x.shape[-2:])
@@ -212,8 +212,8 @@ class Darknet(nn.Module):
             return output
         elif ONNX_EXPORT:
             output = torch.cat(output, 1)  # cat 3 layers 85 x (507, 2028, 8112) to 85 x 10647
-            nc = self.module_list[self.yolo_layers[0]][0].nc  # number of classes
-            return output[5:5 + nc].t(), output[:4].t()  # ONNX scores, boxes
+            print(output.shape)
+            return output[5:85].t(), output[:4].t()  # ONNX scores, boxes
         else:
             io, p = list(zip(*output))  # inference output, training output
             return torch.cat(io, 1), p
@@ -274,12 +274,14 @@ def load_darknet_weights(self, weights, cutoff=-1):
     elif weights_file == 'yolov3-tiny.conv.15':
         cutoff = 15
 
-    # Read weights file
+    # Open the weights file
     with open(weights, 'rb') as f:
-        # Read Header https://github.com/AlexeyAB/darknet/issues/2914#issuecomment-496675346
-        self.version = np.fromfile(f, dtype=np.int32, count=3)  # (int32) version info: major, minor, revision
-        self.seen = np.fromfile(f, dtype=np.int64, count=1)  # (int64) number of images seen during training
+        header = np.fromfile(f, dtype=np.int32, count=5)  # First five are header values
 
+        # Needed to write header when saving weights
+        self.header_info = header
+
+        self.seen = header[3]  # number of images seen during training
         weights = np.fromfile(f, dtype=np.float32)  # The rest are weights
 
     ptr = 0
@@ -325,9 +327,8 @@ def save_weights(self, path='model.weights', cutoff=-1):
     # Converts a PyTorch model to Darket format (*.pt to *.weights)
     # Note: Does not work if model.fuse() is applied
     with open(path, 'wb') as f:
-        # Write Header https://github.com/AlexeyAB/darknet/issues/2914#issuecomment-496675346
-        self.version.tofile(f)  # (int32) version info: major, minor, revision
-        self.seen.tofile(f)  # (int64) number of images seen during training
+        self.header_info[3] = self.seen  # number of images seen during training
+        self.header_info.tofile(f)
 
         # Iterate through layers
         for i, (module_def, module) in enumerate(zip(self.module_defs[:cutoff], self.module_list[:cutoff])):
